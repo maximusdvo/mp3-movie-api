@@ -1,4 +1,4 @@
-"""FastAPI application for storing, querying, and processing movies."""
+"""FastAPI application for storing, querying, processing, and caching movies."""
 
 import io
 import logging
@@ -9,6 +9,7 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from data_pipeline import create_cleaning_report, process_data, validate_dataframe
 from src import (
     HealthResponse,
+    MovieCache,
     MovieDataResponse,
     MovieProcessingReport,
     MovieStorage,
@@ -26,6 +27,7 @@ app = FastAPI(title="Movie API", version="1.0.0")
 app.middleware("http")(log_requests)
 
 storage = MovieStorage()
+cache = MovieCache()
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -60,6 +62,7 @@ async def upload_movies(file: UploadFile = File(...)):
 
     df = df[MOVIE_COLUMNS]
     storage.save(df)
+    cache.invalidate()
     logger.info("Uploaded movies: filename=%s, rows=%d", file.filename, len(df))
 
     return {
@@ -72,11 +75,19 @@ async def upload_movies(file: UploadFile = File(...)):
 
 @app.get("/movies", response_model=MovieDataResponse)
 def get_movies(limit: int = Query(default=100, ge=1)):
-    """Return up to limit stored movies and the total movie count."""
+    """Return up to limit stored movies, using the cache when possible."""
+    cached = cache.get(limit)
+    if cached is not None:
+        logger.info("Served movies from cache: limit=%d", limit)
+        return cached
+
     data = storage.select_columns(MOVIE_COLUMNS, limit)
     total_rows = storage.count_movies()
+    response = {"data": data, "total_rows": total_rows}
+
+    cache.set(limit, response)
     logger.info("Retrieved movies: returned_rows=%d", len(data))
-    return {"data": data, "total_rows": total_rows}
+    return response
 
 
 @app.get("/movies/search", response_model=list[dict])
@@ -131,6 +142,7 @@ def process_movies(config: ProcessConfig):
 
     report = create_cleaning_report(validated_copy, processed)
     storage.save(processed)
+    cache.invalidate()
 
     logger.info(
         "Processed movies: validation_removed=%d, rows_before=%d, rows_after=%d",

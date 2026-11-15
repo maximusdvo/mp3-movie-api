@@ -1,3 +1,7 @@
+"""API models, storage, cache, logging utilities, and middleware."""
+
+from .cache import MovieCache
+from .middleware import log_requests
 from .models import (
     HealthResponse,
     MovieDataResponse,
@@ -7,14 +11,3 @@ from .models import (
 )
 from .storage import MovieStorage
 from .utils import setup_logging
-from .middleware import log_requests
-
-__all__ = [
-    "HealthResponse",
-    "MovieDataResponse",
-    "MovieProcessingReport",
-    "MovieStorage",
-    "MovieUploadInfo",
-    "ProcessConfig",
-    "setup_logging",
-]
