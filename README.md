@@ -1,8 +1,12 @@
-# pytest cache directory #
+#mp3 movie api
 
-This directory contains data from the pytest's cache plugin,
-which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+This project is a fastAPi application that stores a single movie collection in SQLite and then serves it through a REST API. 'main.api' defines the endpoints 'src/database.py' creates connections and the 'movies' table, and 'src/storage.py' contains'MovieStorage', which saves, retireves, filters,a nd counts movies using SQL. uploading a CSV through POSt/upload checks that it has exactly the columns title, release_year, rating, and genre, then replaces the stored collections in one transaction! GEt movies/search filters by min rating and returns requested columns through a parameterized sql query and post/movies/process reuses the mp1 data_pipeline functions to validate and clean the stored moveis, and then saves the result back to sqlite . src/cache.py caches GET/movies responses into fake redis for 90 seconds and is keyed by the limit. successful oploads or processings run clears the cache, so api never srves outdated  data
 
-**Do not** commit this to version control.
 
-See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+to start:
+
+python -m uvicorn main:app --reload
+
+for tests:
+
+python -m pytest tests -v
